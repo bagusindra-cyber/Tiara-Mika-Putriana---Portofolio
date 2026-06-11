@@ -5,40 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Komentar — Portfolio</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body style="background: var(--cream); color: var(--text-dark); min-height: 100vh;">
 
-    <header style="padding: var(--space-md) var(--px); background: var(--white); border-bottom: 1px solid var(--sand-light);">
-        <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
-            <a href="index.html" class="btn-outline">← Kembali</a>
-        </div>
+    <header style="padding: 2rem var(--px); border-bottom: 1px solid var(--sand-light);">
+        <a href="index.html" class="btn-outline">← Kembali ke Portfolio</a>
     </header>
 
-    <main style="padding: var(--space-lg) var(--px); max-width: 1100px; margin: 0 auto;">
-        <div class="comments-page-container">
-            <div class="comment-form-card">
-                <h3 class="comment-block-title">Tulis Komentar</h3>
+    <main style="padding: 2rem var(--px); max-width: 900px; margin: 0 auto;">
+        <h1 style="text-align: center; margin-bottom: 2rem;">Kolom Komentar</h1>
+
+        <div class="comments-page-container" style="display: grid; gap: 2rem;">
+            <div class="comment-form-card" style="background: var(--white); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--sand-light);">
                 <form id="mainCommentForm">
-                    <div class="comment-field-group">
-                        <label>Nama</label>
-                        <input type="text" id="inputName" required>
-                    </div>
-                    <div class="comment-field-group">
-                        <label>Status (Opsional)</label>
-                        <input type="text" id="inputStatus">
-                    </div>
-                    <div class="comment-field-group">
-                        <label>Pesan</label>
-                        <textarea id="inputText" rows="5" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-primary" style="width: 100%;">Kirim Pesan</button>
+                    <div class="comment-field-group"><label>Nama</label><input type="text" id="inputName" required></div>
+                    <div class="comment-field-group"><label>Status (Opsional)</label><input type="text" id="inputStatus"></div>
+                    <div class="comment-field-group"><label>Pesan</label><textarea id="inputText" rows="4" required></textarea></div>
+                    <button type="submit" id="submitBtn" class="btn-primary" style="width: 100%;">Kirim Pesan</button>
                 </form>
             </div>
 
             <div class="comment-display-card">
-                <h3 class="comment-block-title">Semua Komentar</h3>
                 <div class="comment-wrapper" id="commentWrapper">
-                    <p id="loadingText">Menghubungkan ke database...</p>
+                    <p style="text-align: center;">Memuat komentar...</p>
                 </div>
             </div>
         </div>
@@ -60,11 +50,14 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const commentWrapper = document.getElementById('commentWrapper');
 
-        // FUNGSI KIRIM
+        // Submit Logic
         document.getElementById('mainCommentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "Mengirim...";
+            
             try {
                 await addDoc(collection(db, "comments"), {
                     name: document.getElementById('inputName').value,
@@ -74,36 +67,42 @@
                 });
                 document.getElementById('mainCommentForm').reset();
             } catch (err) {
-                alert("Gagal: " + err.message);
+                alert("Error: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Kirim Pesan";
             }
         });
 
-        // FUNGSI TAMPIL
+        // Real-time Listener
         const q = query(collection(db, "comments"), orderBy("timestamp", "desc"));
         onSnapshot(q, (snapshot) => {
-            commentWrapper.innerHTML = '';
+            const wrapper = document.getElementById('commentWrapper');
+            wrapper.innerHTML = ''; 
+            
             if (snapshot.empty) {
-                commentWrapper.innerHTML = '<p>Belum ada komentar.</p>';
+                wrapper.innerHTML = '<p style="text-align:center;">Belum ada komentar.</p>';
                 return;
             }
+
             snapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 const div = document.createElement('div');
                 div.className = 'comment-card-item';
                 div.innerHTML = `
-                    <div class="comment-body">
-                        <h4>${data.name}</h4>
-                        <small>${data.status || ''}</small>
-                        <p>${data.message}</p>
-                        <button onclick="window.del('${docSnap.id}')">Hapus</button>
+                    <div class="comment-body" style="padding: 1rem; border: 1px solid #eee; margin-bottom: 1rem; border-radius: 8px;">
+                        <h4 style="margin:0;">${data.name}</h4>
+                        <small style="color:gray;">${data.status || ''}</small>
+                        <p style="margin: 0.5rem 0;">${data.message}</p>
+                        <button onclick="window.del('${docSnap.id}')" style="cursor:pointer; color:red; border:none; background:none; font-size: 0.8rem;">Hapus</button>
                     </div>
                 `;
-                commentWrapper.appendChild(div);
+                wrapper.appendChild(div);
             });
         });
 
         window.del = async (id) => {
-            await deleteDoc(doc(db, "comments", id));
+            if(confirm("Yakin hapus?")) await deleteDoc(doc(db, "comments", id));
         };
     </script>
 </body>
