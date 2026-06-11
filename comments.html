@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komentar — Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="background: var(--cream); color: var(--text-dark); min-height: 100vh;">
+
+    <header style="padding: var(--space-md) var(--px); background: var(--white); border-bottom: 1px solid var(--sand-light);">
+        <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+            <a href="index.html" class="btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                <span>← Kembali ke Portfolio</span>
+            </a>
+            <span style="font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 500; letter-spacing: 1px; color: var(--text-light);">PORTFOLIO</span>
+        </div>
+    </header>
+
+    <main style="padding: var(--space-lg) var(--px); max-width: 1100px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: var(--space-lg);">
+            <p class="section-eyebrow" style="justify-content: center;">Buku Tamu</p>
+            <h1 class="section-title" style="font-size: clamp(2rem, 4vw, 2.8rem);">Kolom <em>Komentar</em></h1>
+            <div class="divider" style="margin: 0 auto 1.5rem auto;"></div>
+        </div>
+
+        <div class="comments-page-container">
+            <div class="comment-form-card">
+                <h3 class="comment-block-title">Tulis Komentar</h3>
+                <form id="mainCommentForm">
+                    <div class="comment-field-group">
+                        <label for="inputName">Nama</label>
+                        <input type="text" id="inputName" name="name" placeholder="Masukkan nama Anda" required>
+                    </div>
+
+                    <div class="comment-field-group">
+                        <label for="inputStatus">Status / Profesi <span style="color: var(--text-light); font-weight: 400; font-size: 0.8rem;">(Opsional)</span></label>
+                        <input type="text" id="inputStatus" name="status" placeholder="Contoh: Mahasiswa, Pekerja, Freelancer">
+                    </div>
+
+                    <div class="comment-field-group">
+                        <label for="inputText">Pesan</label>
+                        <textarea id="inputText" name="message" rows="5" placeholder="Tulis pesan atau kesan Anda..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                        <span>Kirim Pesan</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="comment-display-card">
+                <h3 class="comment-block-title">Semua Komentar</h3>
+                <div class="comment-wrapper" id="commentWrapper">
+                    <div id="emptyState" style="text-align: center; padding: 2rem 0;">
+                        <p style="color: var(--text-light); font-style: italic; font-size: 0.95rem;">Belum ada komentar. Jadilah yang pertama meninggalkan pesan!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // (Sama dengan script Anda sebelumnya - sudah benar)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDCECzgxZGw8fU5HBPE5EOsTtnGA6HsT8I",
+            authDomain: "web-komen-tiara.firebaseapp.com",
+            projectId: "web-komen-tiara",
+            storageBucket: "web-komen-tiara.firebasestorage.app",
+            messagingSenderId: "1008475645047",
+            appId: "1:1008475645047:web:b5d6499bd99f4ccd2bd272",
+            measurementId: "G-J3KGB1MYJ3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const form = document.getElementById('mainCommentForm');
+        const commentWrapper = document.getElementById('commentWrapper');
+
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('inputName').value;
+                const status = document.getElementById('inputStatus').value || '';
+                const message = document.getElementById('inputText').value;
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<span>Mengirim...</span>';
+                submitBtn.disabled = true;
+
+                try {
+                    await addDoc(collection(db, "comments"), {
+                        name, status, message,
+                        timestamp: serverTimestamp()
+                    });
+                    form.reset();
+                } catch (error) {
+                    console.error(error);
+                    alert("Gagal mengirim.");
+                } finally {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+
+        const q = query(collection(db, "comments"), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                commentWrapper.innerHTML = `<div id="emptyState" style="text-align: center; padding: 2rem 0;"><p style="color: var(--text-light); font-style: italic; font-size: 0.95rem;">Belum ada komentar.</p></div>`;
+                return;
+            }
+            commentWrapper.innerHTML = ''; 
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const docId = docSnap.id;
+                const initial = data.name.charAt(0).toUpperCase();
+                const dateString = data.timestamp ? data.timestamp.toDate().toLocaleDateString('id-ID') : "Baru saja";
+                const statusHtml = data.status ? `<span class="comment-user-status">${data.status}</span>` : '';
+
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment-card-item';
+                commentDiv.setAttribute('data-id', docId);
+                commentDiv.innerHTML = `
+                    <div class="comment-user-avatar">${initial}</div>
+                    <div class="comment-body">
+                        <div class="comment-meta">
+                            <div class="comment-header-row">
+                                <div><h4 class="comment-user-name">${data.name}</h4>${statusHtml}</div>
+                                <button class="comment-delete-btn" onclick="window.deleteComment('${docId}')">Hapus</button>
+                            </div>
+                            <span class="comment-timestamp">${dateString}</span>
+                        </div>
+                        <p class="comment-text-content">${data.message}</p>
+                    </div>
+                `;
+                commentWrapper.appendChild(commentDiv);
+            });
+        });
+
+        window.deleteComment = async function(docId) {
+            if (confirm("Hapus komentar ini?")) {
+                await deleteDoc(doc(db, "comments", docId));
+            }
+        };
+    </script>
+</body>
+</html>
