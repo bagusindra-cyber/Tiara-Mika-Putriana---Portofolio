@@ -5,22 +5,28 @@
 
 /* ── Detect touch/pointer type ───────────────────── */
 const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ── Floating Petals (desktop & no reduced-motion only) ── */
+/* ── Floating Petals (Monokrom Sesuai Tema) ── */
 (function spawnPetals() {
-  if (isTouchDevice || prefersReducedMotion) return; // skip on mobile / accessibility
-  const chars = ['✿', '❀', '✾', '❁', '⚘'];
-  for (let i = 0; i < 8; i++) {
+  const chars = ['✿', '❀', '✾', '❁', '⚘', '✽', '✻', '✼', '❊', '❋'];
+  
+  // Menyesuaikan jumlah bunga: 6 untuk HP, 15 untuk Laptop
+  const petalCount = isTouchDevice ? 6 : 15; 
+
+  for (let i = 0; i < petalCount; i++) {
     const p = document.createElement('div');
     p.className = 'petal';
-    p.textContent = chars[i % chars.length];
+    
+    // Memilih bentuk bunga secara acak
+    p.textContent = chars[Math.floor(Math.random() * chars.length)];
+    
+    // Mengatur posisi, animasi, dan warna
     p.style.cssText = `
       left: ${Math.random() * 100}vw;
       animation-duration: ${10 + Math.random() * 15}s;
       animation-delay: ${Math.random() * 10}s;
-      font-size: ${0.6 + Math.random() * 0.8}rem;
-      color: var(--olive-pale);
+      font-size: ${0.7 + Math.random() * 0.8}rem;
+      color: var(--olive-pale); /* Mengikuti warna tema hijau zaitun pucat */
     `;
     document.body.appendChild(p);
   }
@@ -70,8 +76,10 @@ function toggleMenu() {
   btn.classList.toggle('open', open);
 }
 function closeMenu() {
-  document.getElementById('navLinks').classList.remove('open');
-  document.getElementById('hamburger').classList.remove('open');
+  const nav = document.getElementById('navLinks');
+  const btn = document.getElementById('hamburger');
+  if(nav) nav.classList.remove('open');
+  if(btn) btn.classList.remove('open');
 }
 
 // Close menu on Escape key
@@ -83,7 +91,7 @@ document.addEventListener('keydown', e => {
 document.addEventListener('click', e => {
   const nav = document.getElementById('navLinks');
   const btn = document.getElementById('hamburger');
-  if (!nav.classList.contains('open')) return;
+  if (!nav || !btn || !nav.classList.contains('open')) return;
 
   const panelWidth = Math.min(260, window.innerWidth * 0.78);
   const panelLeft  = window.innerWidth - panelWidth;
@@ -118,15 +126,6 @@ document.addEventListener('click', e => {
 (function initReveal() {
   const els = document.querySelectorAll('.reveal, .timeline-item, .org-card');
 
-  // Skip animation if reduced motion preferred
-  if (prefersReducedMotion) {
-    els.forEach(el => {
-      el.style.opacity   = '1';
-      el.style.transform = 'none';
-    });
-    return;
-  }
-
   els.forEach(el => {
     el.style.opacity    = '0';
     el.style.transform  = 'translateY(24px)';
@@ -150,11 +149,6 @@ document.addEventListener('click', e => {
 /* ── Skill Bars Animate on Scroll ──────────────────── */
 (function initSkillBars() {
   const bars = document.querySelectorAll('.skill-fill');
-
-  if (prefersReducedMotion) {
-    bars.forEach(b => { b.style.width = b.dataset.w + '%'; });
-    return;
-  }
 
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -180,7 +174,10 @@ document.addEventListener('click', e => {
       if (window.scrollY >= offset) current = section.id;
     });
     navLinks.forEach(link => {
-      link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      // Periksa apakah link menuju anchor dan bukan halaman lain
+      if(link.getAttribute('href').startsWith('#')) {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      }
     });
   };
 
@@ -216,69 +213,3 @@ document.addEventListener('click', e => {
     });
   });
 })();
-
-// Contoh fungsi untuk me-render data dari Firebase ke HTML
-// Anggap 'doc' adalah data komentar yang ditarik dari Firebase Firestore
-function renderComment(doc) {
-  const commentList = document.getElementById('commentWrapper');
-  const emptyState = document.getElementById('emptyState');
-  
-  // Sembunyikan pesan "Belum ada komentar"
-  if (emptyState) emptyState.style.display = 'none';
-
-  const data = doc.data();
-  const initial = data.name.charAt(0).toUpperCase();
-  const statusHtml = data.status ? `<span class="comment-user-status">${data.status}</span>` : '';
-
-  // Membuat elemen pembungkus komentar
-  const commentDiv = document.createElement('div');
-  commentDiv.className = 'comment-card-item';
-  commentDiv.setAttribute('data-id', doc.id); // Simpan ID Firebase di elemen
-
-  commentDiv.innerHTML = `
-    <div class="comment-user-avatar">${initial}</div>
-    <div class="comment-body">
-      <div class="comment-meta">
-        <div class="comment-header-row">
-          <div>
-            <h4 class="comment-user-name">${data.name}</h4>
-            ${statusHtml}
-          </div>
-          <button class="comment-delete-btn" onclick="deleteComment('${doc.id}')">Hapus</button>
-        </div>
-        <span class="comment-timestamp">${data.timestamp}</span>
-      </div>
-      <p class="comment-text-content">${data.message}</p>
-    </div>
-  `;
-
-  // Masukkan komentar ke daftar
-  commentList.prepend(commentDiv);
-}
-
-// Fungsi kerangka untuk menghapus data dari Firebase
-async function deleteComment(docId) {
-  const confirmDelete = confirm("Apakah Anda yakin ingin menghapus komentar ini?");
-  if (confirmDelete) {
-    try {
-      // Logika Firebase Anda di sini nanti
-      // await deleteDoc(doc(db, "comments", docId));
-      
-      // Hapus elemen dari tampilan antarmuka secara langsung
-      const commentElement = document.querySelector(`.comment-card-item[data-id="${docId}"]`);
-      if (commentElement) {
-        commentElement.remove();
-      }
-      
-      // Munculkan kembali pesan kosong jika tidak ada komentar tersisa
-      const wrapper = document.getElementById('commentWrapper');
-      if (wrapper && wrapper.querySelectorAll('.comment-card-item').length === 0) {
-        const emptyState = document.getElementById('emptyState');
-        if (emptyState) emptyState.style.display = 'block';
-      }
-      
-    } catch (error) {
-      console.error("Gagal menghapus komentar: ", error);
-    }
-  }
-}
